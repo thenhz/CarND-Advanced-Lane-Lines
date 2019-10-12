@@ -1,9 +1,3 @@
-## Writeup Template
-
-### You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
-
----
-
 **Advanced Lane Finding Project**
 
 The goals / steps of this project are the following:
@@ -19,13 +13,17 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./examples/undistort_output.png "Undistorted"
-[image2]: ./test_images/test1.jpg "Road Transformed"
-[image3]: ./examples/binary_combo_example.jpg "Binary Example"
-[image4]: ./examples/warped_straight_lines.jpg "Warp Example"
-[image5]: ./examples/color_fit_lines.jpg "Fit Visual"
-[image6]: ./examples/example_output.jpg "Output"
-[video1]: ./project_video.mp4 "Video"
+[image0]: ./camera_cal/calibration1.jpg "Original"
+[image1]: ./output_images/undistort_0.png "Undistorted"
+[image2]: ./test_images/test1.jpg "Original Image of road"
+[image7]: ./output_images/undistort_road_0.png "Undistorted Image of road"
+[image8]: ./output_images/color_grad_road_1.png "Binary Image of road from gradient and color filtering "
+[image9]: ./output_images/orig_road_0.png "Undistorted Image of road"
+[image10]: ./output_images/orig_road_lines0.png "Lines overlay on undistorted image"
+[image11]: ./output_images/orig_road_warped0.png "warped image"
+[image12]: ./output_images/complete_pipeline_road_0.png "Complete pipeline Example (radius calculation here is fake..check the video)"
+
+[video1]: ./test_videos_output/project_video.mp4 "Video"
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
 
@@ -35,80 +33,55 @@ The goals / steps of this project are the following:
 
 ### Writeup / README
 
-#### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Advanced-Lane-Lines/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.  
-
-You're reading it!
 
 ### Camera Calibration
 
 #### 1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
 
-The code for this step is contained in the first code cell of the IPython notebook located in "./examples/example.ipynb" (or in lines # through # of the file called `some_file.py`).  
+The code for this step is available in the cell under the title **camera calibration** . Code provided has been inspired in what is available on the OpenCV docs and it's quite similar to the one shown in the lessons. I've started with the definition of the *object points* assuming z=0 and by using `np.mgrid` function to fill the array of the undistorted grid. Then I cycled through all the provided images (which the grd available in 2 of them wasn't recognized by the OpenCV `findChessboardCorners` method. In any case, all the other grids has been recognized so I was able to provide enough *object points* and *image points* to the `calibrateCamera` method. Here below you can find an example of the distortion correction application by using `cv2.undistort` with the parameters calculated by the steps described above:
 
-I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.  
-
-I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result: 
-
+![alt text][image0]
 ![alt text][image1]
 
 ### Pipeline (single images)
 
+Starting from the original image below, I will show all the steps implemented in the pipeline
+
+![alt text][image2]
+
 #### 1. Provide an example of a distortion-corrected image.
 
-To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
-![alt text][image2]
+Like I've described above, here below there's the original picture with the distortion correction applied:
+![alt text][image7]
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+I used a combination of color (selection from HLS, LAB and RGB color space) and gradient thresholds to generate a binary image (thresholding steps available in the cell under the title **Color and gradient step**).  After setup the code stub, I've tried several parameters leading me to the results below. Unfortunately those parameters don't perform well on the additional challange. Here's an example of my output for this step.
 
-![alt text][image3]
+![alt text][image8]
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
-The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
+The code for my perspective transform includes a function called `perspective_transform()`, which appears in the cell under the title **Find suitable perspective transformation**.  The function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  
 
-```python
-src = np.float32(
-    [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    [((img_size[0] / 6) - 10), img_size[1]],
-    [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-dst = np.float32(
-    [[(img_size[0] / 4), 0],
-    [(img_size[0] / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), 0]])
-```
-
-This resulted in the following source and destination points:
-
-| Source        | Destination   | 
-|:-------------:|:-------------:| 
-| 585, 460      | 320, 0        | 
-| 203, 720      | 320, 720      |
-| 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
-
-I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
-
-![alt text][image4]
+![alt text][image9]
+![alt text][image10]
+![alt text][image11]
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+In the 2 cells under the title **Find lanes** there's the code to extract and find the lanes. This code is for the most inspired by the code seen in the lessons: There's the algo for searching lines from scratch `fit_polinomial` and the one to use when we can rely on the previous detection `search_around_poly`
 
-![alt text][image5]
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-I did this in lines # through # in my code in `my_other_file.py`
+Lane radius curvature has been calculated by leveraging on the class suggested in *Tips and tricks for the project*. I've implemented 2 classes: `Line` which calculates all the useful params associated to the line like `radius_of_curvature` or `line_base_pos` which stores the distance of the lane and a `history` of detection that are used to make the upcoming detection more stable. Then I implemented a class calle `Lane` which feeds the two `Line` classes with proper values coming from each frame in the method `process_image`. The most important methods are the `update` for both `Lane` and `Line` classes. In particular, in that method you can find the code to calculate the radius of curvature (which in the end equals to the average of the radius found on each line)
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+Under the cell called **Test pipeline  some images** you can find the code that applies all the steps described above to some images. **Please pay attention** that, since the curvature and center distance is calculated on the classes described above, here I've tested only the other pipeline steps while I put fake data just to see if I was placing the text properly in the image. In the video instead you can find the real values of the curvature
 
-![alt text][image6]
+![alt text][image12]
 
 ---
 
@@ -124,4 +97,4 @@ Here's a [link to my video result](./project_video.mp4)
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+As usual, finding correct parameters is always where I spend the most of the project time. Pipeline does work well, the classes implemented to buffer all useful data does a great job. I've tried to run the pipeline on the additional challanges but it fails. I assume that the parameters can be set better and maybe some more improvements on the  `Line` or `Lane` classes can increrase the presicion in detection. If I wanted to make it more stable I would switch to use segmentaiton nets since they seem to perform very better than the detection implemented. One question I have is: are those techniques that I used in this notebook still valid? Shouldn't we have to pick as a first choice the segmentation networks? Or maybe a combiination of both? I think I will investigate soon some of these technique a side of this project, but I really enjoyed lerning all these fundamentals
